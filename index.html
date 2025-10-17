@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menù - PORTICI 1983</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdfaf6;
+        }
+        h1, h2, h3, .font-display {
+            font-family: 'Playfair Display', serif;
+        }
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            transition: transform 0.2s ease-in-out;
+            margin-bottom: 0.75rem; /* 12px */
+        }
+        .menu-item:hover {
+            transform: translateX(5px);
+        }
+        .menu-item .name {
+            font-weight: 400;
+            color: #333;
+        }
+        .menu-item .price {
+            font-weight: 300;
+            color: #555;
+            white-space: nowrap; /* Evita che il prezzo vada a capo */
+        }
+        .menu-item .dots {
+            flex-grow: 1;
+            border-bottom: 1px dotted #ccc;
+            margin: 0 0.5rem;
+            transform: translateY(-4px);
+        }
+        .subcategory-title {
+            color: #a16207;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid #f0e9de;
+        }
+        .subcategory-title:first-of-type {
+            margin-top: 1rem;
+        }
+        
+        /* Accordion Styles */
+        .accordion-header {
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1rem; /* 20px 16px */
+            background-color: transparent;
+            border-bottom: 1px solid #e5e7eb;
+            transition: background-color 0.2s ease;
+        }
+        .accordion-header:hover {
+            background-color: #fefcf9;
+        }
+        .accordion-header h2 {
+            margin: 0;
+            color: #374151;
+        }
+        .accordion-icon {
+            transition: transform 0.3s ease-in-out;
+        }
+        .accordion-header.active .accordion-icon {
+            transform: rotate(180deg);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out;
+            background-color: #fff;
+        }
+        .accordion-content-inner {
+             padding: 1.5rem;
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-8 max-w-4xl">
+        
+        <header class="text-center my-8 sm:my-12">
+            <h1 class="text-4xl sm:text-6xl font-bold tracking-wider text-gray-900">PORTICI 1983</h1>
+            <p class="text-md sm:text-lg text-gray-500 mt-2 tracking-widest">Piazza Rimembranza, Diso</p>
+        </header>
+
+        <main class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div id="menu-accordion">
+                </div>
+        </main>
+        
+        <footer class="text-center mt-8">
+            <p class="text-sm text-gray-400">PORTICI 1983 - Passione per la qualità dal 1983.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // *** INCOLLA QUI IL TUO LINK DAL FOGLIO GOOGLE ***
+            const googleSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQta4kr56CLT1iwTOMvPjdkYuQPQuNG92mG_Oc10t2D_MW_lybDZE9Yez_CTeAoUcM9UWbmJADHPnZh/pub?output=csvINCOLLA_IL_TUO_LINK_CSV_QUI';
+
+            // Usiamo PapaParse per caricare e analizzare i dati CSV dal link
+            Papa.parse(googleSheetURL, {
+                download: true, // Dice a PapaParse di scaricare il file dal link
+                header: true,   // La prima riga del nostro CSV contiene le intestazioni (Categoria, Nome, etc.)
+                complete: function(results) {
+                    // "results.data" contiene il nostro menù come una lista di oggetti
+                    buildMenu(results.data);
+                }
+            });
+
+            function buildMenu(menuData) {
+                const accordionContainer = document.getElementById('menu-accordion');
+                // Usiamo un oggetto per raggruppare tutti i prodotti per Categoria
+                const categories = {};
+
+                menuData.forEach(item => {
+                    // Se la riga non è vuota e ha una categoria
+                    if (item.Categoria) {
+                        if (!categories[item.Categoria]) {
+                            // Se non abbiamo ancora visto questa categoria, la creiamo
+                            categories[item.Categoria] = [];
+                        }
+                        // Aggiungiamo l'articolo alla sua categoria
+                        categories[item.Categoria].push(item);
+                    }
+                });
+
+                // Ora che abbiamo tutto raggruppato, creiamo l'HTML
+                for (const categoryName in categories) {
+                    const items = categories[categoryName];
+                    
+                    const accordionItem = document.createElement('div');
+                    accordionItem.className = 'accordion-item border-b';
+
+                    let contentHTML = '';
+
+                    // Controlliamo se la categoria è "Le Nostre Specialità" per un layout diverso
+                    if (categoryName === 'Le Nostre Specialità') {
+                        contentHTML = items.map(item => `
+                            <div>
+                                <h3 class="font-display text-xl text-yellow-800">${item.Nome}</h3>
+                                <p class="text-gray-600 mt-1">${item.Descrizione}</p>
+                            </div>
+                        `).join('<div class="my-6"></div>'); // Aggiunge uno spazio tra le specialità
+                    } else {
+                        // Altrimenti, usiamo il layout standard raggruppando per sottocategoria
+                        const subcategories = {};
+                        items.forEach(item => {
+                            const subcategory = item.Sottocategoria || 'default';
+                            if (!subcategories[subcategory]) {
+                                subcategories[subcategory] = [];
+                            }
+                            subcategories[subcategory].push(item);
+                        });
+
+                        for (const subcategoryName in subcategories) {
+                            if (subcategoryName !== 'default') {
+                                contentHTML += `<h3 class="subcategory-title text-xl">${subcategoryName}</h3>`;
+                            }
+                            contentHTML += subcategories[subcategoryName].map(item => `
+                                <div class="menu-item">
+                                    <span class="name">${item.Nome}</span>
+                                    <span class="dots"></span>
+                                    <span class="price">${item.Prezzo}</span>
+                                </div>
+                            `).join('');
+                        }
+                    }
+
+                    // Creiamo l'elemento completo della fisarmonica (header + content)
+                    accordionItem.innerHTML = `
+                        <button class="accordion-header">
+                            <h2 class="text-2xl sm:text-3xl font-display">${categoryName}</h2>
+                            <svg class="accordion-icon w-6 h-6 text-yellow-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="accordion-content-inner max-w-2xl mx-auto">${contentHTML}</div>
+                        </div>
+                    `;
+                    accordionContainer.appendChild(accordionItem);
+                }
+
+                // Una volta costruito il menù, attiviamo la logica della fisarmonica
+                setupAccordion();
+            }
+
+            function setupAccordion() {
+                const accordionHeaders = document.querySelectorAll('.accordion-header');
+                if(accordionHeaders.length > 0) {
+                    // Apri la prima sezione di default
+                    const firstHeader = accordionHeaders[0];
+                    const firstContent = firstHeader.nextElementSibling;
+                    firstHeader.classList.add('active');
+                    firstContent.style.maxHeight = firstContent.scrollHeight + "px";
+                }
+
+                accordionHeaders.forEach(header => {
+                    header.addEventListener('click', () => {
+                        const currentActiveHeader = document.querySelector('.accordion-header.active');
+                        // Chiudi la sezione eventualmente già aperta, se non è quella su cui ho cliccato
+                        if (currentActiveHeader && currentActiveHeader !== header) {
+                            currentActiveHeader.classList.remove('active');
+                            currentActiveHeader.nextElementSibling.style.maxHeight = null;
+                        }
+
+                        // Apri o chiudi la sezione cliccata
+                        header.classList.toggle('active');
+                        const content = header.nextElementSibling;
+                        if (content.style.maxHeight) {
+                            content.style.maxHeight = null;
+                        } else {
+                            // Bisogna ricalcolare scrollHeight ogni volta, perché il contenuto può cambiare
+                            content.style.maxHeight = content.scrollHeight + "px";
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
